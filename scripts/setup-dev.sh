@@ -87,17 +87,15 @@ else
     exit 1
 fi
 
-cd ..
-
-# Create additional missing dependencies for backend
-echo "🔧 Adding missing backend dependencies..."
-cd backend
-
-# Add missing dependencies to Cargo.toml
-cargo add base64
-cargo add chrono --features serde
-
-echo "✅ Additional dependencies added"
+# Test build
+echo "🔧 Testing production build..."
+npm run build
+if [ $? -eq 0 ]; then
+    echo "✅ Frontend builds successfully"
+else
+    echo "❌ Frontend build failed"
+    exit 1
+fi
 
 cd ..
 
@@ -117,3 +115,6 @@ echo "🔧 Development commands:"
 echo "   Backend:  ./scripts/start-backend.sh"
 echo "   Frontend: ./scripts/start-frontend.sh"
 echo "   Both:     ./scripts/start-dev.sh"
+echo ""
+echo "🧪 Test the API:"
+echo "   curl http://localhost:8080/health"
