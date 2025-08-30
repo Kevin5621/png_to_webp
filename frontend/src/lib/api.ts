@@ -22,15 +22,29 @@ export async function convertImage(file: File): Promise<ConvertResponse> {
   formData.append('image', file)
 
   try {
+    console.log('🚀 Sending request to:', `${API_BASE_URL}/api/convert`)
+    console.log('📁 File size:', file.size, 'bytes')
+    
     const response = await api.post<ConvertResponse>('/api/convert', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
 
+    console.log('✅ Response received:', response.status)
     return response.data
   } catch (error) {
+    console.error('❌ Request failed:', error)
+    
     if (axios.isAxiosError(error)) {
+      console.error('📡 Axios error details:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      })
+      
       const errorData = error.response?.data as ApiError | undefined
       
       if (errorData && !errorData.success) {
@@ -43,6 +57,11 @@ export async function convertImage(file: File): Promise<ConvertResponse> {
       
       if (error.response && error.response.status >= 500) {
         throw new Error('Server error occurred. Please try again later.')
+      }
+      
+      // Network errors (no response received)
+      if (!error.response) {
+        throw new Error(`Network error: ${error.message}. Check if backend is running on ${API_BASE_URL}`)
       }
       
       throw new Error(error.message || 'Network error occurred')

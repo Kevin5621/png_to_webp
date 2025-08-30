@@ -1,5 +1,7 @@
 'use client'
 
+import { HealthCheck } from './HealthCheck'
+
 export function Header() {
   return (
     <header className="text-center">
@@ -23,6 +25,9 @@ export function Header() {
           <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
           Fast processing
         </div>
+      </div>
+      <div className="mt-4 flex justify-center">
+        <HealthCheck />
       </div>
     </header>
   )

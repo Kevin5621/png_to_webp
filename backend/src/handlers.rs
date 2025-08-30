@@ -78,8 +78,8 @@ pub async fn convert_image(mut multipart: Multipart) -> Result<Json<ConvertRespo
 
     // Encode WebP data as base64
     let webp_base64 = general_purpose::STANDARD.encode(&webp_data);
-
-    Ok(Json(ConvertResponse {
+    
+    let response = ConvertResponse {
         success: true,
         message: "Image converted successfully".to_string(),
         filename: output_filename,
@@ -87,5 +87,12 @@ pub async fn convert_image(mut multipart: Multipart) -> Result<Json<ConvertRespo
         original_size: image_bytes.len(),
         converted_size: webp_data.len(),
         compression_ratio: (1.0 - (webp_data.len() as f64 / image_bytes.len() as f64)) * 100.0,
-    }))
+    };
+
+    tracing::info!("📡 Sending response: {} bytes -> {} bytes ({}% reduction)", 
+                   response.original_size, 
+                   response.converted_size,
+                   response.compression_ratio);
+
+    Ok(Json(response))
 }

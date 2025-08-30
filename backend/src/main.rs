@@ -34,7 +34,12 @@ async fn main() -> anyhow::Result<()> {
 
     // Configure CORS - Allow frontend to communicate with backend
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>()?)
+        .allow_origin([
+            "http://localhost:3000".parse::<HeaderValue>()?,
+            "http://127.0.0.1:3000".parse::<HeaderValue>()?,
+            "http://localhost:3001".parse::<HeaderValue>()?,
+            "http://127.0.0.1:3001".parse::<HeaderValue>()?,
+        ])
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
 
