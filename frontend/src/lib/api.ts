@@ -41,7 +41,7 @@ export async function convertImage(file: File): Promise<ConvertResponse> {
         throw new Error('File size too large. Maximum allowed size is 50MB.')
       }
       
-      if (error.response?.status >= 500) {
+      if (error.response && error.response.status >= 500) {
         throw new Error('Server error occurred. Please try again later.')
       }
       
