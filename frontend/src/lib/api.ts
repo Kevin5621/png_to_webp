@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ConvertResponse, ApiError } from './types'
+import { ConvertResponse, ApiError, BatchConvertResponse } from './types'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
@@ -68,6 +68,43 @@ export async function convertImage(file: File): Promise<ConvertResponse> {
     }
     
     throw new Error('An unexpected error occurred')
+  }
+}
+
+/**
+ * Convert multiple PNG images to WebP format
+ * @param files - Array of PNG files to convert
+ * @param onProgress - Optional callback for progress updates
+ * @returns Promise<BatchConvertResponse> - Batch conversion results
+ */
+export async function convertMultipleImages(
+  files: File[],
+  onProgress?: (current: number, total: number) => void
+): Promise<BatchConvertResponse> {
+  const results: ConvertResponse[] = []
+  const errors: string[] = []
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    onProgress?.(i + 1, files.length)
+    
+    try {
+      const result = await convertImage(file)
+      results.push(result)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      errors.push(`${file.name}: ${errorMessage}`)
+    }
+  }
+  
+  return {
+    success: true,
+    message: `Converted ${results.length} of ${files.length} files`,
+    results,
+    total_files: files.length,
+    successful_conversions: results.length,
+    failed_conversions: errors.length,
+    errors,
   }
 }
 

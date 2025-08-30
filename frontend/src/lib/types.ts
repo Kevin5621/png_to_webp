@@ -8,6 +8,16 @@ export interface ConvertResponse {
   compression_ratio: number  // Percentage saved
 }
 
+export interface BatchConvertResponse {
+  success: boolean
+  message: string
+  results: ConvertResponse[]
+  total_files: number
+  successful_conversions: number
+  failed_conversions: number
+  errors: string[]
+}
+
 export interface ApiError {
   success: boolean
   error: string
