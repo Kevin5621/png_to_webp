@@ -1,0 +1,47 @@
+{
+  "name": "png-to-webp-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PNG to WebP Converter - Full Stack Monorepo",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && cargo run",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && cargo build --release",
+    "build:frontend": "cd frontend && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && cargo test",
+    "test:frontend": "cd frontend && npm run test",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && cargo clippy",
+    "lint:frontend": "cd frontend && npm run lint",
+    "clean": "npm run clean:backend && npm run clean:frontend",
+    "clean:backend": "cd backend && cargo clean",
+    "clean:frontend": "cd frontend && rm -rf .next && rm -rf node_modules",
+    "setup": "npm run setup:backend && npm run setup:frontend",
+    "setup:backend": "cd backend && cargo check",
+    "setup:frontend": "npm install && cd frontend && npm install",
+    "format": "npm run format:backend && npm run format:frontend",
+    "format:backend": "cd backend && cargo fmt",
+    "format:frontend": "cd frontend && npm run format || echo 'No format script in frontend'",
+    "check": "npm run check:backend && npm run check:frontend",
+    "check:backend": "cd backend && cargo check",
+    "check:frontend": "cd frontend && npm run type-check",
+    "start:prod": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && cargo run --release",
+    "start:frontend": "cd frontend && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "packageManager": "npm@10.8.2"
+}

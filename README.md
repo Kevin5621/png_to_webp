@@ -30,10 +30,48 @@ png_to_webp/
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Rust (latest stable) - [Install from rustup.rs](https://rustup.rs/)
-- Node.js 18+ - [Install from nodejs.org](https://nodejs.org/)
-- npm or yarn
+### 🔧 Monorepo Management Options
+
+Proyek ini mendukung 3 cara manajemen monorepo yang efisien:
+
+#### Option 1: npm scripts (Recommended untuk pemula)
+```bash
+# Setup & install dependencies
+npm run setup
+
+# Start development (both servers)
+npm run dev
+
+# Build everything
+npm run build
+```
+
+#### Option 2: Just command runner (Recommended untuk power users)
+```bash
+# Install Just
+./scripts/install-just.sh
+
+# Show available commands
+just --list
+
+# Start development
+just dev
+
+# Build everything  
+just build
+```
+
+#### Option 3: Make (Traditional approach)
+```bash
+# Show available commands
+make help
+
+# Start development
+make dev
+
+# Build everything
+make build
+```
 
 ### Automated Setup
 
@@ -42,14 +80,18 @@ png_to_webp/
 git clone <your-repo>
 cd png_to_webp
 
-# Run automated setup
-./scripts/setup-dev.sh
-
-# Start both servers
-./scripts/start-dev.sh
+# Quick setup (any of these options)
+npm run setup          # npm approach
+just setup             # Just approach  
+make setup             # Make approach
 ```
 
 ### Manual Setup
+
+#### Prerequisites
+- Rust (latest stable) - [Install from rustup.rs](https://rustup.rs/)
+- Node.js 18+ - [Install from nodejs.org](https://nodejs.org/)
+- npm 8+
 
 #### Backend Setup
 ```bash
@@ -64,6 +106,52 @@ cd frontend
 cp .env.local.example .env.local
 npm install
 npm run dev
+```
+
+## 🛠️ Monorepo Commands Reference
+
+### Development Commands
+```bash
+# Start all services
+npm run dev      # or: just dev      # or: make dev
+
+# Start individual services
+npm run dev:backend    # or: just dev-backend    # or: make dev-backend
+npm run dev:frontend   # or: just dev-frontend   # or: make dev-frontend
+```
+
+### Build Commands
+```bash
+# Build everything
+npm run build    # or: just build    # or: make build
+
+# Build individual
+npm run build:backend     # or: just build-backend     # or: make build-backend
+npm run build:frontend    # or: just build-frontend    # or: make build-frontend
+```
+
+### Code Quality Commands
+```bash
+# Lint everything
+npm run lint     # or: just lint     # or: make lint
+
+# Type check
+npm run check    # or: just check    # or: make check
+
+# Format code
+npm run format   # or: just format   # or: make format
+```
+
+### Utility Commands
+```bash
+# Clean build artifacts
+npm run clean    # or: just clean    # or: make clean
+
+# Project status
+just status      # or: make status
+
+# Update dependencies
+just update      # or: make update
 ```
 
 ## 📡 API Communication

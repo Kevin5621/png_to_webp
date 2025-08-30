@@ -1,0 +1,54 @@
+{
+  "folders": [
+    {
+      "name": "Root",
+      "path": "."
+    },
+    {
+      "name": "Backend (Rust)",
+      "path": "./backend"
+    },
+    {
+      "name": "Frontend (Next.js)",
+      "path": "./frontend"
+    }
+  ],
+  "settings": {
+    "rust-analyzer.linkedProjects": ["./backend/Cargo.toml"],
+    "typescript.preferences.rootPath": "./frontend",
+    "eslint.workingDirectories": ["frontend"],
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/target": true,
+      "**/.next": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/target": true,
+      "**/.next": true,
+      "**/package-lock.json": true,
+      "**/Cargo.lock": true
+    },
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/target/**": true,
+      "**/.next/**": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "rust-lang.rust-analyzer",
+      "ms-vscode.vscode-typescript-next",
+      "bradlc.vscode-tailwindcss",
+      "ms-vscode.vscode-json",
+      "formulahendry.auto-rename-tag",
+      "ms-vscode.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "tamasfe.even-better-toml"
+    ]
+  }
+}
