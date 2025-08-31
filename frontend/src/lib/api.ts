@@ -72,17 +72,73 @@ export async function convertImage(file: File): Promise<ConvertResponse> {
 }
 
 /**
+ * Video compression quality levels
+ */
+export type CompressionQuality = 'maximum' | 'high' | 'balanced' | 'low' | 'minimal'
+
+/**
+ * Video compression settings
+ */
+export interface VideoCompressionSettings {
+  quality: CompressionQuality
+  audioBitrate?: string
+}
+
+/**
+ * Handle video conversion API errors
+ */
+function handleVideoConversionError(error: unknown): never {
+  if (axios.isAxiosError(error)) {
+    const errorData = error.response?.data as ApiError | undefined
+    if (errorData && !errorData.success) {
+      throw new Error(errorData.error)
+    }
+    if (error.response?.status === 413) {
+      throw new Error('File size too large. Maximum allowed size is 200MB.')
+    }
+    if (!error.response) {
+      throw new Error(`Network error: ${error.message}. Check if backend is running on ${API_BASE_URL}`)
+    }
+    throw new Error(error.message || 'Network error occurred')
+  }
+  throw new Error('An unexpected error occurred')
+}
+
+/**
+ * Create FormData for video conversion
+ */
+function createVideoFormData(file: File, settings?: VideoCompressionSettings): FormData {
+  const formData = new FormData()
+  formData.append('video', file)
+  
+  if (settings) {
+    console.log('📋 Adding compression settings:', settings)
+    formData.append('quality', settings.quality)
+    console.log('  ✓ Added quality:', settings.quality)
+    if (settings.audioBitrate) {
+      formData.append('audio_bitrate', settings.audioBitrate)
+      console.log('  ✓ Added audio_bitrate:', settings.audioBitrate)
+    }
+  }
+  
+  return formData
+}
+
+/**
  * Convert MP4 video to WebM format
  * @param file - MP4 file to convert
+ * @param settings - Optional compression settings
  * @returns Promise<ConvertResponse> - Conversion result with WebM data (base64)
  */
-export async function convertVideo(file: File): Promise<ConvertResponse> {
+export async function convertVideo(
+  file: File, 
+  settings?: VideoCompressionSettings
+): Promise<ConvertResponse> {
   if (!file.type.includes('mp4') && !file.name.toLowerCase().endsWith('.mp4')) {
     throw new Error('Only MP4 files are supported')
   }
 
-  const formData = new FormData()
-  formData.append('video', file)
+  const formData = createVideoFormData(file, settings)
 
   try {
     const response = await api.post<ConvertResponse>('/api/convert-video', formData, {
@@ -94,20 +150,7 @@ export async function convertVideo(file: File): Promise<ConvertResponse> {
 
     return response.data
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const errorData = error.response?.data as ApiError | undefined
-      if (errorData && !errorData.success) {
-        throw new Error(errorData.error)
-      }
-      if (error.response?.status === 413) {
-        throw new Error('File size too large. Maximum allowed size is 200MB.')
-      }
-      if (!error.response) {
-        throw new Error(`Network error: ${error.message}. Check if backend is running on ${API_BASE_URL}`)
-      }
-      throw new Error(error.message || 'Network error occurred')
-    }
-    throw new Error('An unexpected error occurred')
+    handleVideoConversionError(error)
   }
 }
 

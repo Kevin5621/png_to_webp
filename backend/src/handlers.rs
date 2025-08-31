@@ -100,13 +100,17 @@ pub async fn convert_image(mut multipart: Multipart) -> Result<Json<ConvertRespo
 
 /// Convert MP4 video to WebM
 ///
-/// Accepts multipart/form-data with 'video' field containing MP4 file
+/// Accepts multipart/form-data with:
+/// - 'video' field containing MP4 file
+/// - Optional 'quality' field with compression quality (maximum|high|balanced|low|minimal)
+/// - Optional 'audio_bitrate' field (e.g., "64k", "96k", "128k")
 /// Returns converted WebM as base64 encoded string
 pub async fn convert_video(mut multipart: Multipart) -> Result<Json<ConvertResponse>, AppError> {
     tracing::info!("🎬 Received video conversion request");
 
     let mut video_data: Option<Vec<u8>> = None;
     let mut filename: Option<String> = None;
+    let mut compression_settings = crate::models::VideoCompressionSettings::default();
 
     while let Some(field) = multipart.next_field().await.map_err(|e| {
         tracing::error!("Failed to parse multipart field: {}", e);
@@ -124,6 +128,36 @@ pub async fn convert_video(mut multipart: Multipart) -> Result<Json<ConvertRespo
                 video_data = Some(data.to_vec());
                 tracing::info!("📁 Received file: {:?}, size: {} bytes", filename, data.len());
             }
+            "quality" => {
+                let quality_str = field.text().await.map_err(|e| {
+                    tracing::error!("Failed to read quality setting: {}", e);
+                    AppError::BadRequest("Failed to read quality setting".to_string())
+                })?;
+                
+                tracing::info!("📥 Received quality field: '{}'", quality_str);
+                
+                compression_settings.quality = match quality_str.to_lowercase().as_str() {
+                    "maximum" => crate::models::CompressionQuality::Maximum,
+                    "high" => crate::models::CompressionQuality::High,
+                    "balanced" => crate::models::CompressionQuality::Balanced,
+                    "low" => crate::models::CompressionQuality::Low,
+                    "minimal" => crate::models::CompressionQuality::Minimal,
+                    _ => {
+                        tracing::warn!("Unknown quality setting '{}', using default", quality_str);
+                        crate::models::CompressionQuality::High
+                    }
+                };
+                tracing::info!("🎛️ Quality setting applied: {:?}", compression_settings.quality);
+            }
+            "audio_bitrate" => {
+                let bitrate = field.text().await.map_err(|e| {
+                    tracing::error!("Failed to read audio bitrate: {}", e);
+                    AppError::BadRequest("Failed to read audio bitrate".to_string())
+                })?;
+                tracing::info!("📥 Received audio_bitrate field: '{}'", bitrate);
+                compression_settings.audio_bitrate = Some(bitrate.clone());
+                tracing::info!("🔊 Audio bitrate applied: {:?}", compression_settings.audio_bitrate);
+            }
             _ => {
                 tracing::warn!("🚫 Ignored unknown field: {}", field_name);
             }
@@ -135,9 +169,9 @@ pub async fn convert_video(mut multipart: Multipart) -> Result<Json<ConvertRespo
         AppError::BadRequest("No video field found".to_string())
     })?;
 
-    // Call service to convert MP4 -> WebM using ffmpeg (runs in blocking thread)
+    // Call service to convert MP4 -> WebM using ffmpeg with compression settings
     let original_len = video_bytes.len();
-    let webm_data = video_processor::convert_mp4_to_webm(video_bytes).await?;
+    let webm_data = video_processor::convert_mp4_to_webm_with_settings(video_bytes, compression_settings).await?;
 
     // Generate output filename
     let output_filename = filename
@@ -157,7 +191,10 @@ pub async fn convert_video(mut multipart: Multipart) -> Result<Json<ConvertRespo
         compression_ratio: (1.0 - (webm_data.len() as f64 / original_len as f64)) * 100.0,
     };
 
-    tracing::info!("✅ Video conversion completed, output size: {} bytes", response.converted_size);
+    tracing::info!("✅ Video conversion completed: {} bytes -> {} bytes ({}% reduction)", 
+                   response.original_size, 
+                   response.converted_size,
+                   response.compression_ratio);
 
     Ok(Json(response))
 }

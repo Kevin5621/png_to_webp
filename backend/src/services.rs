@@ -79,12 +79,21 @@ pub mod image_processor {
 
 pub mod video_processor {
     use crate::errors::AppError;
+    use crate::models::VideoCompressionSettings;
     use std::io::Write;
     use tempfile::NamedTempFile;
 
     /// Convert MP4 bytes to WebM bytes using ffmpeg.
     /// Runs ffmpeg in a blocking thread to avoid blocking the async runtime.
     pub async fn convert_mp4_to_webm(mp4_data: Vec<u8>) -> Result<Vec<u8>, AppError> {
+        convert_mp4_to_webm_with_settings(mp4_data, VideoCompressionSettings::default()).await
+    }
+
+    /// Convert MP4 bytes to WebM bytes using ffmpeg with custom compression settings.
+    pub async fn convert_mp4_to_webm_with_settings(
+        mp4_data: Vec<u8>,
+        settings: VideoCompressionSettings,
+    ) -> Result<Vec<u8>, AppError> {
         tokio::task::spawn_blocking(move || {
             // Create temp input file
             let mut in_file = NamedTempFile::new().map_err(|e| AppError::ProcessingError(format!("Failed to create temp input file: {}", e)))?;
@@ -95,24 +104,43 @@ pub mod video_processor {
             let out_file = NamedTempFile::with_suffix(".webm").map_err(|e| AppError::ProcessingError(format!("Failed to create temp output file: {}", e)))?;
             let out_path = out_file.path().to_str().ok_or_else(|| AppError::ProcessingError("Invalid temp path".to_string()))?.to_string();
 
-            // Build ffmpeg command: faster encoding with reasonable quality
+            let crf = settings.quality.crf_value().to_string();
+            let cpu_used = settings.quality.cpu_used().to_string();
+            let deadline = settings.quality.deadline();
+            let audio_bitrate = settings.audio_bitrate.as_deref().unwrap_or("64k");
+
+            tracing::info!("🎬 Converting with settings: CRF={}, CPU-used={}, deadline={}, audio={}",
+                          crf, cpu_used, deadline, audio_bitrate);
+
+            // Build ffmpeg command with configurable compression settings
             let status = std::process::Command::new("ffmpeg")
                 .arg("-i")
                 .arg(&in_path)
+                // Video encoding settings - VP9 for best compression
                 .arg("-c:v")
                 .arg("libvpx-vp9")
                 .arg("-crf")
-                .arg("35")  // Slightly lower quality for faster encoding
+                .arg(&crf)
                 .arg("-b:v")
-                .arg("0")
+                .arg("0")   // Use CRF mode for consistent quality
                 .arg("-deadline")
-                .arg("realtime")  // Use realtime encoding for speed
+                .arg(deadline)
                 .arg("-cpu-used")
-                .arg("6")  // Faster encoding preset
+                .arg(&cpu_used)
+                .arg("-row-mt")
+                .arg("1")   // Enable row-based multithreading for faster encoding
+                .arg("-tile-columns")
+                .arg("2")   // Tile encoding for parallelization
+                .arg("-tile-rows")
+                .arg("1")
+                // Audio encoding settings - aggressive compression
                 .arg("-c:a")
                 .arg("libopus")
                 .arg("-b:a")
-                .arg("96k")  // Set explicit audio bitrate
+                .arg(audio_bitrate)
+                .arg("-application")
+                .arg("voip") // Optimized for voice content
+                // Output format
                 .arg("-f")
                 .arg("webm")
                 .arg("-y")

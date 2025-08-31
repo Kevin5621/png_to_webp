@@ -13,7 +13,10 @@ import {
   MoreHorizontal,
   Check
 } from 'lucide-react'
-import { convertVideo } from '@/lib/api'
+import {
+  convertVideo,
+  type VideoCompressionSettings
+} from '@/lib/api'
 import { ConvertResponse } from '@/lib/types'
 import {
   useFileUpload,
@@ -36,6 +39,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Separator } from '@/components/ui/separator'
+import { CompressionSettings } from '@/components/CompressionSettings'
 import { cn } from '@/lib/utils'
 
 interface FileUploadItem extends FileWithPreview {
@@ -50,6 +55,10 @@ export function VideoConverter() {
   const [isConverting, setIsConverting] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [globalProgress, setGlobalProgress] = useState(0)
+  const [compressionSettings, setCompressionSettings] = useState<VideoCompressionSettings>({
+    quality: 'high',
+    audioBitrate: '64k'
+  })
 
   const {
     history,
@@ -98,8 +107,8 @@ export function VideoConverter() {
   })
 
   const convertSingleFile = useCallback(async (file: File): Promise<ConvertResponse> => {
-    return await convertVideo(file)
-  }, [])
+    return await convertVideo(file, compressionSettings)
+  }, [compressionSettings])
 
   const convertAllFiles = useCallback(async () => {
     if (uploadFiles.length === 0) return
@@ -235,6 +244,14 @@ export function VideoConverter() {
           <CardTitle>MP4 to WebM Converter</CardTitle>
         </CardHeader>
         <CardContent>
+          <CompressionSettings
+            settings={compressionSettings}
+            onSettingsChange={setCompressionSettings}
+            disabled={isConverting}
+          />
+
+          <Separator className="my-4" />
+
           <div
             className={cn(
               'relative rounded-lg border border-dashed p-8 text-center transition-colors cursor-pointer',
