@@ -7,6 +7,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use handlers::convert_video;
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -41,14 +42,16 @@ async fn main() -> anyhow::Result<()> {
             "http://127.0.0.1:3001".parse::<HeaderValue>()?,
         ])
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
+        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
+        .allow_credentials(true);
 
     // Build application with routes
     let app = Router::new()
         .route("/health", get(health_check))
-        .route("/api/convert", post(convert_image))
+    .route("/api/convert", post(convert_image))
+    .route("/api/convert-video", post(convert_video))
         .layer(cors)
-        .layer(DefaultBodyLimit::max(50 * 1024 * 1024)); // 50MB max file size
+    .layer(DefaultBodyLimit::max(200 * 1024 * 1024)); // 200MB max file size
 
     // Start server
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));

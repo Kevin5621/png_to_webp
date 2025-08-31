@@ -89,7 +89,7 @@ export async function convertVideo(file: File): Promise<ConvertResponse> {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      // Videos may take longer; keep default timeout but allow axios to stream
+      timeout: 300000, // 5 minutes timeout for video conversion
     })
 
     return response.data

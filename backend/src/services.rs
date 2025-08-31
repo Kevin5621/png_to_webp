@@ -1,8 +1,8 @@
-use crate::errors::AppError;
-use image::ImageFormat;
+// Module provides image and video processing helpers
 
 pub mod image_processor {
-    use super::*;
+    use crate::errors::AppError;
+    use image::ImageFormat;
 
     /// Check if the provided bytes represent a valid PNG image
     pub fn is_valid_png(data: &[u8]) -> bool {
@@ -74,5 +74,62 @@ pub mod image_processor {
         let webp_data = encoder.encode(85.0);
 
         Ok(webp_data.to_vec())
+    }
+}
+
+pub mod video_processor {
+    use crate::errors::AppError;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    /// Convert MP4 bytes to WebM bytes using ffmpeg.
+    /// Runs ffmpeg in a blocking thread to avoid blocking the async runtime.
+    pub async fn convert_mp4_to_webm(mp4_data: Vec<u8>) -> Result<Vec<u8>, AppError> {
+        tokio::task::spawn_blocking(move || {
+            // Create temp input file
+            let mut in_file = NamedTempFile::new().map_err(|e| AppError::ProcessingError(format!("Failed to create temp input file: {}", e)))?;
+            in_file.write_all(&mp4_data).map_err(|e| AppError::ProcessingError(format!("Failed to write input file: {}", e)))?;
+            let in_path = in_file.path().to_str().ok_or_else(|| AppError::ProcessingError("Invalid temp path".to_string()))?.to_string();
+
+            // Create temp output file with .webm extension
+            let out_file = NamedTempFile::with_suffix(".webm").map_err(|e| AppError::ProcessingError(format!("Failed to create temp output file: {}", e)))?;
+            let out_path = out_file.path().to_str().ok_or_else(|| AppError::ProcessingError("Invalid temp path".to_string()))?.to_string();
+
+            // Build ffmpeg command: faster encoding with reasonable quality
+            let status = std::process::Command::new("ffmpeg")
+                .arg("-i")
+                .arg(&in_path)
+                .arg("-c:v")
+                .arg("libvpx-vp9")
+                .arg("-crf")
+                .arg("35")  // Slightly lower quality for faster encoding
+                .arg("-b:v")
+                .arg("0")
+                .arg("-deadline")
+                .arg("realtime")  // Use realtime encoding for speed
+                .arg("-cpu-used")
+                .arg("6")  // Faster encoding preset
+                .arg("-c:a")
+                .arg("libopus")
+                .arg("-b:a")
+                .arg("96k")  // Set explicit audio bitrate
+                .arg("-f")
+                .arg("webm")
+                .arg("-y")
+                .arg(&out_path)
+                .status()
+                .map_err(|e| AppError::ProcessingError(format!("Failed to execute ffmpeg: {}", e)))?;
+
+            if !status.success() {
+                return Err(AppError::ProcessingError(format!("ffmpeg exited with status: {}", status)));
+            }
+
+            // Read output file bytes
+            let out_bytes = std::fs::read(&out_path).map_err(|e| AppError::ProcessingError(format!("Failed to read output file: {}", e)))?;
+
+            Ok(out_bytes)
+        })
+        .await
+        .map_err(|e| AppError::ProcessingError(format!("Conversion task join error: {}", e)))?
     }
 }
