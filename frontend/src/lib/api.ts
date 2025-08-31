@@ -72,6 +72,46 @@ export async function convertImage(file: File): Promise<ConvertResponse> {
 }
 
 /**
+ * Convert MP4 video to WebM format
+ * @param file - MP4 file to convert
+ * @returns Promise<ConvertResponse> - Conversion result with WebM data (base64)
+ */
+export async function convertVideo(file: File): Promise<ConvertResponse> {
+  if (!file.type.includes('mp4') && !file.name.toLowerCase().endsWith('.mp4')) {
+    throw new Error('Only MP4 files are supported')
+  }
+
+  const formData = new FormData()
+  formData.append('video', file)
+
+  try {
+    const response = await api.post<ConvertResponse>('/api/convert-video', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      // Videos may take longer; keep default timeout but allow axios to stream
+    })
+
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorData = error.response?.data as ApiError | undefined
+      if (errorData && !errorData.success) {
+        throw new Error(errorData.error)
+      }
+      if (error.response?.status === 413) {
+        throw new Error('File size too large. Maximum allowed size is 200MB.')
+      }
+      if (!error.response) {
+        throw new Error(`Network error: ${error.message}. Check if backend is running on ${API_BASE_URL}`)
+      }
+      throw new Error(error.message || 'Network error occurred')
+    }
+    throw new Error('An unexpected error occurred')
+  }
+}
+
+/**
  * Convert multiple PNG images to WebP format
  * @param files - Array of PNG files to convert
  * @param onProgress - Optional callback for progress updates
